@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistente de Fertirrigação - Bruno Adelino</title>
+    <style>
+        :root {
+            --primary-color: #2e7d32;
+            --secondary-color: #1976d2;
+            --accent-color: #ff9800;
+            --bg-color: #f4f7f4;
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            padding: 10px; 
+            background-color: var(--bg-color); 
+            color: #333;
+            margin: 0;
+        }
+
+        .container { 
+            max-width: 1000px; 
+            margin: 10px auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+        }
+        
+        .header { 
+            text-align: center; 
+            border-bottom: 3px solid var(--primary-color); 
+            margin-bottom: 20px; 
+            padding-bottom: 15px; 
+        }
+
+        h1 { 
+            color: var(--primary-color); 
+            margin-bottom: 8px; 
+            font-size: 1.3rem; /* Ajustado para caber o título longo em celulares */
+            line-height: 1.2;
+        }
+        .author { color: #558b2f; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .config-inicial { 
+            background: #e8f5e9; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+        }
+
+        .config-inicial label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem; }
+
+        .fase-row { 
+            display: flex;
+            flex-wrap: wrap; 
+            gap: 10px; 
+            margin-bottom: 15px; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            background-color: #fff;
+        }
+
+        .fase-row > div { 
+            flex: 1 1 180px; 
+        }
+
+        label { font-size: 0.75rem; font-weight: bold; color: #444; margin-bottom: 5px; display: block; }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #ccc; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-size: 1rem; 
+        }
+
+        .buttons { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        
+        .btn-add { background: var(--secondary-color); color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; }
+        .btn-gerar { background: var(--primary-color); color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1.1rem; }
+
+        .card-adubacao { 
+            background: #fff; padding: 15px; border-left: 6px solid var(--accent-color); 
+            margin-top: 10px; border-radius: 8px; 
+            display: flex; flex-direction: column; gap: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee;
+        }
+
+        .info-data { font-size: 1.1rem; color: #d32f2f; font-weight: bold; }
+        .btn-agenda { 
+            background: #4285f4; color: white; text-decoration: none; 
+            padding: 12px; border-radius: 6px; font-size: 0.9rem; 
+            font-weight: bold; text-align: center;
+        }
+
+        @media (min-width: 600px) {
+            h1 { font-size: 1.7rem; }
+            .buttons { flex-direction: row; }
+            .card-adubacao { flex-direction: row; justify-content: space-between; align-items: center; }
+            body { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Assistente de Planejamento e Agendamento de Fertirrigação</h1>
+        <div class="author">Bruno Adelino - Engenheiro Agrônomo</div>
+    </div>
+    
+    <div class="config-inicial">
+        <label>Data de Início do Ciclo (Plantio/Transplante):</label>
+        <input type="date" id="dataBase">
+    </div>
+    
+    <div id="fases-container">
+        <div class="fase-row">
+            <div><label>Adubo/Nutriente</label><input type="text" class="adubo" placeholder="Ex: MAP"></div>
+            <div><label>Dose (kg/ha)</label><input type="text" class="qtd" placeholder="Ex: 5"></div>
+            <div><label>Início (Dias após)</label><input type="number" class="diaInicio" value="0"></div>
+            <div><label>Intervalo (Dias)</label><input type="number" class="intervalo" value="7"></div>
+            <div><label>Repetições</label><input type="number" class="ciclos" value="1"></div>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button class="btn-add" onclick="addFase()">+ Adicionar Adubo</button>
+        <button class="btn-gerar" onclick="gerarPlano()">Gerar Cronograma de Campo</button>
+    </div>
+
+    <div id="resultado"></div>
+</div>
+
+<script>
+    function addFase() {
+        const container = document.getElementById('fases-container');
+        const novaFase = document.createElement('div');
+        novaFase.className = 'fase-row';
+        novaFase.innerHTML = `
+            <div><label>Adubo</label><input type="text" class="adubo"></div>
+            <div><label>Dose</label><input type="text" class="qtd"></div>
+            <div><label>Início (Dias)</label><input type="number" class="diaInicio" value="0"></div>
+            <div><label>Intervalo</label><input type="number" class="intervalo" value="7"></div>
+            <div><label>Repetições</label><input type="number" class="ciclos" value="1"></div>
+        `;
+        container.appendChild(novaFase);
+    }
+
+    function gerarPlano() {
+        const dataBaseInput = document.getElementById('dataBase').value;
+        if (!dataBaseInput) { alert("Bruno, selecione a data inicial para o planejamento."); return; }
+
+        const adubos = document.getElementsByClassName('adubo');
+        const qtds = document.getElementsByClassName('qtd');
+        const diasInicio = document.getElementsByClassName('diaInicio');
+        const intervalos = document.getElementsByClassName('intervalo');
+        const ciclos = document.getElementsByClassName('ciclos');
+        
+        let cronograma = [];
+
+        for (let i = 0; i < adubos.length; i++) {
+            let nome = adubos[i].value;
+            let dose = qtds[i].value;
+            let startDay = parseInt(diasInicio[i].value) || 0;
+            let gap = parseInt(intervalos[i].value) || 0;
+            let reps = parseInt(ciclos[i].value) || 0;
+
+            if(!nome) continue;
+
+            for (let j = 0; j < reps; j++) {
+                let dataEvento = new Date(dataBaseInput);
+                let diasSomados = startDay + (j * gap);
+                dataEvento.setUTCDate(dataEvento.getUTCDate() + diasSomados);
+
+                cronograma.push({
+                    data: new Date(dataEvento),
+                    nome: nome,
+                    dose: dose,
+                    dia: diasSomados
+                });
+            }
+        }
+
+        cronograma.sort((a, b) => a.data - b.data);
+
+        const resultadoDiv = document.getElementById('resultado');
+        resultadoDiv.innerHTML = "<h3 style='color:var(--primary-color); border-bottom: 1px solid #ddd; padding-bottom: 5px;'>Cronograma Consolidado:</h3>";
+
+        cronograma.forEach(evento => {
+            let dataIso = evento.data.toISOString().split('T')[0].replace(/-/g, "");
+            let dataFmt = evento.data.toLocaleDateString('pt-BR', {timeZone: 'UTC'});
+            let link = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Fertirrigação: ' + evento.nome)}&dates=${dataIso}/${dataIso}&details=${encodeURIComponent('Dose: ' + evento.dose + '\nDia ' + evento.dia + ' do ciclo.\nPlanejado pelo Eng. Agrônomo Bruno Adelino.')}`;
+
+            resultadoDiv.innerHTML += `
+                <div class="card-adubacao">
+                    <div>
+                        <span class="info-data">${dataFmt}</span> <small>(Dia ${evento.dia})</small><br>
+                        <span><strong>${evento.nome}</strong> &mdash; Dose: ${evento.dose}</span>
+                    </div>
+                    <a href="${link}" target="_blank" class="btn-agenda">📅 Agendar no Google</a>
+                </div>
+            `;
+        });
+        
+        resultadoDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+</body>
+</html>
